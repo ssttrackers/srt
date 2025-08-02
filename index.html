@@ -1,39 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My Stock Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>📈 NSE Reports (Live)</title>
   <style>
     body {
-      font-family: Arial;
-      text-align: center;
-      padding: 50px;
-      background-color: #f0f8ff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
     }
+
     h1 {
       color: #333;
     }
-    a {
-      display: inline-block;
-      margin: 20px;
-      padding: 15px 25px;
-      font-size: 18px;
-      background-color: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
+
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ccc;
     }
-    a:hover {
-      background-color: #0056b3;
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-bottom: none;
+      background-color: #eee;
+      margin-right: 5px;
+      font-weight: bold;
+    }
+
+    .tab.active {
+      background-color: white;
+      color: black;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #efefef;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
 
-  <h1>📈 My Stock Pages</h1>
-  <a href="nifty200.html">Nifty 200 Report</a>
-  <a href="cash.html">Cash Report</a>
-  <a href="SST-N50.html">SST N50 Report</a> <!-- ✅ New button added -->
+  <h1>📊 NSE Reports</h1>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('totalMarket')">💰 Total Market</div>
+    <div class="tab" onclick="switchTab('nifty200')">📊 Nifty 200</div>
+  </div>
 
+  <div id="totalMarket" class="sheetTab"></div>
+  <div id="nifty200" class="sheetTab hidden"></div>
+
+  <script>
+    const sheets = {
+      totalMarket: {
+        url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vToQMjjbx_kPbSvqKoTG3rPmp6p9OOGMzKAMjRge7N7dvY99WcY5T5yEM6-IyEaVnF-4qFUZzOjIwjD/pub?gid=374636284&single=true&output=csv',
+        container: 'totalMarket'
+      },
+      nifty200: {
+        url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2nLaK--celtuMJSPlPJV1hT5W56vhe7oTjYmy5jPDEI3OCmGIw1Gahsz6Isr2_c8qN0sMbZ4zCtQ-/pub?gid=374636284&single=true&output=csv',
+        container: 'nifty200'
+      }
+    };
+
+    function loadSheet(sheetKey) {
+      const { url, container } = sheets[sheetKey];
+      fetch(url)
+        .then(res => res.text())
+        .then(csv => {
+          const rows = csv.trim().split('\n');
+          const div = document.getElementById(container);
+          const table = document.createElement('table');
+
+          rows.forEach((row, i) => {
+            const cols = row.split(',');
+            const tr = document.createElement('tr');
+
+            cols.forEach((col, j) => {
+              const cell = document.createElement(i === 0 ? 'th' : 'td');
+              const text = col.trim();
+              cell.textContent = text;
+
+              if (i !== 0) {
+                // Buy action column logic (3rd col)
+                if (cols[2].toLowerCase().includes("buy") && j === 2) {
+                  cell.style.backgroundColor = "#d4edda";
+                  cell.style.color = "#155724";
+                  cell.style.fontWeight = "bold";
+                }
+
+                // P&L column (last one)
+                if (j === cols.length - 1) {
+                  const num = parseFloat(text);
+                  if (!isNaN(num)) {
+                    cell.style.color = num > 0 ? "green" : (num < 0 ? "red" : "black");
+                    cell.style.fontWeight = "bold";
+                  }
+                }
+              }
+
+              tr.appendChild(cell);
+            });
+
+            table.appendChild(tr);
+          });
+
+          div.innerHTML = '';
+          div.appendChild(table);
+        });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.sheetTab').forEach(tab => {
+        tab.classList.add('hidden');
+      });
+      document.querySelector(`.tab[onclick*="${tabId}"]`).classList.add('active');
+      document.getElementById(tabId).classList.remove('hidden');
+
+      if (!document.getElementById(tabId).hasChildNodes()) {
+        loadSheet(tabId);
+      }
+    }
+
+    // Load default tab
+    loadSheet('totalMarket');
+  </script>
 </body>
 </html>
